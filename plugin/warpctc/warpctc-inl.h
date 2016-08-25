@@ -106,7 +106,7 @@ class WarpCTCOp : public Operator {
       }
     }
   }
-
+/*
   virtual void Backward(const OpContext &ctx,
                         const std::vector<TBlob> &out_grad,
                         const std::vector<TBlob> &in_data,
@@ -205,6 +205,137 @@ class WarpCTCOp : public Operator {
       CHECK_EQ(cuda_status, cudaSuccess) << "cuda free workspace fail";
       free(cpu_raw_labels);
       free(cpu_labels);
+#endif
+    }
+  }
+*/
+
+  virtual void Backward(const OpContext &ctx,
+                        const std::vector<TBlob> &out_grad,
+                        const std::vector<TBlob> &in_data,
+                        const std::vector<TBlob> &out_data,
+                        const std::vector<OpReqType> &req,
+                        const std::vector<TBlob> &in_grad,
+                        const std::vector<TBlob> &aux_args) {
+    using namespace mshadow;
+    TBlob data = in_data[warpctc_enum::kData];
+    TBlob label = in_data[warpctc_enum::kLabel];
+    CHECK_EQ(data.shape_.ndim(), 2) << "input data shape should be 2 (t*n, p)";
+    ctcComputeInfo info;
+    
+    info.loc = CTC_CPU;
+    info.num_threads = 1;
+
+    int T = param_.input_length;
+    int minibatch = data.shape_[0] / T;
+    int alphabet_size = data.shape_[1];
+    std::vector<int> input_lengths;
+    for (int i = 0; i < minibatch; i++) {
+      input_lengths.push_back(T);
+    }
+
+#if MXNET_USE_CUDA
+    cudaError_t cuda_status;
+#endif
+    float* activations = static_cast<float*>(data.dptr_);
+    float *cpu_activations = activations;
+    
+    int* flat_labels = static_cast<int*>(label.dptr_);
+    int* cpu_raw_labels = flat_labels;
+    
+    TBlob in_gradata = in_grad[warpctc_enum::kData];
+    float* grads = static_cast<float*>(in_gradata.dptr_);
+    float* cpu_grads = grads;
+
+    if (data.dev_mask_ == gpu::kDevMask) {
+#if MXNET_USE_CUDA
+      cpu_activations = reinterpret_cast<float*>(malloc(sizeof(float) * data.Size()));
+      cuda_status = cudaMemcpyAsync(cpu_activations, activations,
+                                    data.Size()*sizeof(float),
+                                    cudaMemcpyDeviceToHost,
+                                    ctx.get_stream<gpu>()->stream_);
+      CHECK_EQ(cuda_status, cudaSuccess) << "cuda memcpy to host, data error";
+      
+      cpu_raw_labels = reinterpret_cast<int*>(malloc(sizeof(int) * label.Size()));
+      cuda_status = cudaMemcpyAsync(cpu_raw_labels, flat_labels,
+                                    label.Size()*sizeof(int),
+                                    cudaMemcpyDeviceToHost,
+                                    ctx.get_stream<gpu>()->stream_);
+      CHECK_EQ(cuda_status, cudaSuccess) << "cuda memcpy to host, label error";
+      
+      cpu_grads = reinterpret_cast<float*>(malloc(sizeof(float) * in_gradata.Size()));
+      cuda_status = cudaMemcpyAsync(cpu_grads, grads,
+                                    in_gradata.Size()*sizeof(float),
+                                    cudaMemcpyDeviceToHost,
+                                    ctx.get_stream<gpu>()->stream_);
+      CHECK_EQ(cuda_status, cudaSuccess) << "cuda memcpy to host, in_grad error";
+#endif
+    }
+
+    int total_label_length = 0;
+    std::vector<int> label_lengths = labelLengths(cpu_raw_labels,
+                                                  minibatch,
+                                                  label.Size(),
+                                                  0, &total_label_length);
+    int* cpu_labels = reinterpret_cast<int*>(
+        malloc(sizeof(int) * total_label_length));
+    removeBlank(cpu_raw_labels, cpu_labels, label.Size(), 0);
+
+    size_t alloc_bytes;
+    throw_on_error(get_workspace_size(label_lengths.data(),
+                                      input_lengths.data(),
+                                      alphabet_size,
+                                      input_lengths.size(), info,
+                                      &alloc_bytes),
+                   "Error: get_workspace_size in inf_test");
+    void* ctc_workspace;
+    
+    ctc_workspace = malloc(alloc_bytes);
+  
+//    if (data.dev_mask_ == cpu::kDevMask) {
+//      ctc_workspace = malloc(alloc_bytes);
+//    } else if (data.dev_mask_ == gpu::kDevMask) {
+//#if MXNET_USE_CUDA
+//      cuda_status = cudaMalloc(&ctc_workspace, alloc_bytes);
+//      CHECK_EQ(cuda_status, cudaSuccess) << "cuda malloc worksapce fail";
+//#endif
+//    }
+    std::vector<float> costs(minibatch);
+    throw_on_error(compute_ctc_loss(cpu_activations,
+                                    cpu_grads,
+                                    cpu_labels,
+                                    label_lengths.data(),
+                                    input_lengths.data(),
+                                    alphabet_size,
+                                    minibatch,
+                                    costs.data(),
+                                    ctc_workspace,
+                                    info),
+                   "Error: compute_ctc_loss");
+
+    if (data.dev_mask_ == cpu::kDevMask) {
+      free(ctc_workspace);
+      free(cpu_labels);
+    } else if (data.dev_mask_ == gpu::kDevMask) {
+#if MXNET_USE_CUDA
+//      cuda_status = cudaMemcpyAsync(activations, cpu_activations,
+//                                    data.Size()*sizeof(float),
+//                                    cudaMemcpyHostToDevice,
+//                                    ctx.get_stream<gpu>()->stream_);
+//      CHECK_EQ(cuda_status, cudaSuccess) << "cuda memcpy to device, data error";
+      
+      cuda_status = cudaMemcpyAsync(grads, cpu_grads,
+                                    in_gradata.Size()*sizeof(float),
+                                    cudaMemcpyHostToDevice,
+                                    ctx.get_stream<gpu>()->stream_);
+      CHECK_EQ(cuda_status, cudaSuccess) << "cuda memcpy to device, in_grad error";
+      
+      cuda_status = cudaFree(ctc_workspace);
+      CHECK_EQ(cuda_status, cudaSuccess) << "cuda free workspace fail";
+      free(cpu_raw_labels);
+      free(cpu_labels);
+      free(cpu_activations);
+      free(cpu_grads);
 #endif
     }
   }
