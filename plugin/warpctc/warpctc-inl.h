@@ -330,8 +330,7 @@ class WarpCTCOp : public Operator {
                                     ctx.get_stream<gpu>()->stream_);
       CHECK_EQ(cuda_status, cudaSuccess) << "cuda memcpy to device, in_grad error";
       
-      cuda_status = cudaFree(ctc_workspace);
-      CHECK_EQ(cuda_status, cudaSuccess) << "cuda free workspace fail";
+      free(ctc_workspace);
       free(cpu_raw_labels);
       free(cpu_labels);
       free(cpu_activations);
