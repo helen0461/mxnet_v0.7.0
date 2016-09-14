@@ -1,9 +1,9 @@
 [submodule "mshadow"]
 	path = mshadow
-	url = git@git.deepglint.com:Zhang/mxnet_mshadow.git
+	url = https://git.deepglint.com/Zhang/mxnet_mshadow.git
 [submodule "dmlc-core"]
 	path = dmlc-core
-	url = git@git.deepglint.com:Zhang/mxnet_dmlc-core.git 
+	url = https://git.deepglint.com/Zhang/mxnet_dmlc-core.git 
 [submodule "ps-lite"]
 	path = ps-lite
-	url = git@git.deepglint.com:Zhang/mxnet_ps-lite.git
+	url = https://git.deepglint.com/Zhang/mxnet_ps-lite.git
