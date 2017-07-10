@@ -225,7 +225,7 @@ class WarpCTCOp : public Operator {
     
     info.loc = CTC_CPU;
     info.num_threads = 1;
-
+std::cout << "this is ctc cpu ...\n";
     int T = param_.input_length;
     int minibatch = data.shape_[0] / T;
     int alphabet_size = data.shape_[1];
