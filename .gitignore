@@ -62,7 +62,7 @@ __pycache__
 *.json
 *.d
 build
-data
+#data
 recommonmark
 bin
 deps
