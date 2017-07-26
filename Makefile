@@ -39,7 +39,7 @@ LDFLAGS = -pthread $(MSHADOW_LDFLAGS) $(DMLC_LDFLAGS)
 ifeq ($(DEBUG), 1)
 	NVCCFLAGS = -D_FORCE_INLINES -g -G -O0 -ccbin $(CXX) $(MSHADOW_NVCCFLAGS)
 else
-	NVCCFLAGS = -D_FORCE_INLINES -std=c++11 -g -O3 -ccbin $(CXX) $(MSHADOW_NVCCFLAGS)
+	NVCCFLAGS = -D_FORCE_INLINES -g -O3 -ccbin $(CXX) $(MSHADOW_NVCCFLAGS)
 endif
 
 ifndef LINT_LANG
@@ -150,8 +150,8 @@ endif
 
 build/src/%.o: src/%.cc
 	@mkdir -p $(@D)
-	$(CXX) -std=c++11 $(CFLAGS) -MM -MT build/src/$*.o $< >build/src/$*.d
-	$(CXX) -std=c++11 -c $(CFLAGS) -c $< -o $@
+	$(CXX) -std=c++0x $(CFLAGS) -MM -MT build/src/$*.o $< >build/src/$*.d
+	$(CXX) -std=c++0x -c $(CFLAGS) -c $< -o $@
 
 build/src/%_gpu.o: src/%.cu
 	@mkdir -p $(@D)
@@ -160,14 +160,14 @@ build/src/%_gpu.o: src/%.cu
 
 build/plugin/%.o: plugin/%.cc
 	@mkdir -p $(@D)
-	$(CXX) -std=c++11 $(CFLAGS) -MM -MT build/plugin/$*.o $< >build/plugin/$*.d
-	$(CXX) -std=c++11 -c $(CFLAGS) -c $< -o $@
+	$(CXX) -std=c++0x $(CFLAGS) -MM -MT build/plugin/$*.o $< >build/plugin/$*.d
+	$(CXX) -std=c++0x -c $(CFLAGS) -c $< -o $@
 
 # A nvcc bug cause it to generate "generic/xxx.h" dependencies from torch headers.
 # Use CXX to generate dependency instead.
 build/plugin/%_gpu.o: plugin/%.cu
 	@mkdir -p $(@D)
-	$(CXX) -std=c++11 $(CFLAGS) -MM -MT build/plugin/$*_gpu.o $< >build/plugin/$*_gpu.d
+	$(CXX) -std=c++0x $(CFLAGS) -MM -MT build/plugin/$*_gpu.o $< >build/plugin/$*_gpu.d
 	$(NVCC) -c -o $@ $(NVCCFLAGS) -Xcompiler "$(CFLAGS)" $<
 
 $(EXTRA_OPERATORS)/build/%.o: $(EXTRA_OPERATORS)/%.cc
@@ -177,8 +177,8 @@ $(EXTRA_OPERATORS)/build/%.o: $(EXTRA_OPERATORS)/%.cc
 
 $(EXTRA_OPERATORS)/build/%_gpu.o: $(EXTRA_OPERATORS)/%.cu
 	@mkdir -p $(@D)
-	$(NVCC) $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -Isrc/operator" -M -MT $(EXTRA_OPERATORS)/build/$*_gpu.o $< >$(EXTRA_OPERATORS)/build/$*_gpu.d
-	$(NVCC) -c -o $@ $(NVCCFLAGS) -Xcompiler "$(CFLAGS) -Isrc/operator" $<
+	$(NVCC) $(NVCCFLAGS) -std=c++11 -Xcompiler "$(CFLAGS) -Isrc/operator" -M -MT $(EXTRA_OPERATORS)/build/$*_gpu.o $< >$(EXTRA_OPERATORS)/build/$*_gpu.d
+	$(NVCC) -c -o $@ $(NVCCFLAGS) -std=c++11 -Xcompiler "$(CFLAGS) -Isrc/operator" $<
 
 # NOTE: to statically link libmxnet.a we need the option
 # --Wl,--whole-archive -lmxnet --Wl,--no-whole-archive
@@ -201,7 +201,7 @@ bin/im2rec: tools/im2rec.cc $(ALL_DEP)
 
 $(BIN) :
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -std=c++11  -o $@ $(filter %.cpp %.o %.c %.a %.cc, $^) $(LDFLAGS)
+	$(CXX) $(CFLAGS) -std=c++0x  -o $@ $(filter %.cpp %.o %.c %.a %.cc, $^) $(LDFLAGS)
 
 include tests/cpp/unittest.mk
 

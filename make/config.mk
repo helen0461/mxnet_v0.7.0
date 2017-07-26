@@ -104,7 +104,7 @@ USE_S3 = 0
 #----------------------------
 
 # path to folders containing projects specific operators that you don't want to put in src/operators
-EXTRA_OPERATORS =
+EXTRA_OPERATORS = extra_op
 
 
 #----------------------------
@@ -116,8 +116,8 @@ EXTRA_OPERATORS =
 # TORCH_PATH = $(HOME)/torch
 # MXNET_PLUGINS += plugin/torch/torch.mk
 
-#WARPCTC_PATH = $(HOME)/work/warp-ctc
-#MXNET_PLUGINS += plugin/warpctc/warpctc.mk
+WARPCTC_PATH = $(HOME)/work/dmlc/warp-ctc
+MXNET_PLUGINS += plugin/warpctc/warpctc.mk
 
 # whether to use sframe integration. This requires build sframe
 # git@github.com:dato-code/SFrame.git
