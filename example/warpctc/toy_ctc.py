@@ -2,7 +2,7 @@
 # pylint: disable=superfluous-parens, no-member, invalid-name
 from __future__ import print_function
 import sys
-sys.path.insert(0, "/home/mingzhang/work/dmlc/test/")
+sys.path.insert(0, "/home/mingzhang/work/dmlc/test/python/")
 import numpy as np
 import mxnet as mx
 import random
